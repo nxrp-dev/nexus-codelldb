@@ -81,3 +81,12 @@ add_test(NAME cargo_test
     COMMAND cargo test --lib -p=lldb -p=adapter-protocol -p=codelldb ${CargoFlags} -vv -- --test-threads=1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Cargo's test executables use the selected LLVM C++ runtime dynamically.
+    execute_process(COMMAND ${CMAKE_CXX_COMPILER} --print-file-name=libc++abi.so.1
+        OUTPUT_VARIABLE CXXRuntime OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+    get_filename_component(CXXRuntimeDirectory "${CXXRuntime}" DIRECTORY)
+    get_filename_component(LLDBRuntimeDirectory "${LLDB_LIBRARY}" DIRECTORY)
+    set_tests_properties(cargo_test PROPERTIES ENVIRONMENT
+        "LD_LIBRARY_PATH=${CXXRuntimeDirectory}:${LLDBRuntimeDirectory}:$ENV{LD_LIBRARY_PATH}")
+endif()
