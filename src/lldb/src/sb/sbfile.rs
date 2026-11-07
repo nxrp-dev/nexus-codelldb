@@ -78,4 +78,3 @@ fn windows_file_handle_transfer() {
     assert!(input.close().is_success());
     std::fs::remove_file(path).unwrap();
 }
-
