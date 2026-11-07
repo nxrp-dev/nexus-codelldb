@@ -42,10 +42,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $installer = "$env:RUNNER_TEMP/llvm.msi"
+          $installer = Join-Path $env:RUNNER_TEMP 'llvm.msi'
           Invoke-WebRequest "https://github.com/llvm/llvm-project/releases/download/llvmorg-$env:LLVM_VERSION/LLVM-$env:LLVM_VERSION-win64.msi" -OutFile $installer
           if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '15e49aca3540991a6f28a0e57babab67da82155c4f73f79dd5e8666a851f9127') { throw 'LLVM checksum mismatch' }
-          $install = Start-Process msiexec -ArgumentList @('/i', $installer, '/qn', '/norestart') -Wait -PassThru -WindowStyle Hidden
+          $install = Start-Process msiexec -ArgumentList "/i `"$installer`" /qn /norestart /L*v `"$env:RUNNER_TEMP\llvm-install.log`"" -Wait -PassThru -WindowStyle Hidden
           if ($install.ExitCode -notin @(0, 3010)) { throw "LLVM installation failed: $($install.ExitCode)" }
           'LLVM_ROOT=C:/Program Files/LLVM' >> $env:GITHUB_ENV
           'C:/Program Files/LLVM/bin' >> $env:GITHUB_PATH
