@@ -1,4 +1,43 @@
-# Features
+# Nexus CodeLLDB adapter
+
+Nexus builds and distributes the native adapter from this fork. LLVM/LLDB is an
+external toolchain dependency; the adapter package does not contain another LLVM
+installation or a Python runtime. Launch it with the chosen `liblldb` path through
+the adapter's `--liblldb` argument.
+
+## Build
+
+Use Rust 1.91.0, CMake 3.21 or newer, Ninja, and the selected LLVM toolchain.
+Windows additionally needs the MSVC libraries, Windows SDK, and DIA SDK.
+Run from a configured development environment with Cargo and LLVM tools on PATH.
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ROOT=/path/to/llvm -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+cmake --build build --target adapter
+cmake --build build --target check
+cmake --build build --target package
+```
+
+On Windows, select `clang-cl` for both C and C++ compilers. The Windows adapter
+requires LLVM 23's `SBFile::OpenFdFromHandle` API. LLVM itself is not built here.
+If the LLVM installation lacks LLDB headers, set `LLVM_SOURCE_DIR` to matching
+upstream sources. Only their headers and the upstream API-header generator are
+used. Alternatively, supply `LLDB_INCLUDE_DIRS` explicitly. `LLDB_LIBRARY` can
+override the shared-library location within the selected toolchain.
+
+The `check` target runs the Rust unit suites. The upstream DAP integration test
+sources remain under `tests`; they are separate from these unit checks.
+
+CPack produces `nexus-codelldb-<platform>.zip`, containing the adapter, launcher,
+support scripts, license, and (on Windows) the DIA library. Use `PLATFORM_ID` to
+set the package platform name. There is no full or bootstrap VSIX build in this
+fork; the Nexus extension owns VS Code integration.
+
+The CI workflow provisions LLVM 23.1.4 as a build prerequisite. That toolchain is
+not uploaded with the adapter artifacts.
+
+## Adapter features
 - Conditional breakpoints, function breakpoints, logpoints,
 - Hardware data access breakpoints (watchpoints),
 - Launch debuggee in integrated or external terminal,

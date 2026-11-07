@@ -1,33 +1,34 @@
-add_custom_target(lldb ALL DEPENDS ${LLDB_PACKAGE})
-if (NOT IS_DIRECTORY ${LLDB_PACKAGE})
-    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/bin) # Remove symlinks, if any
-    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/lib)
-    add_custom_command(TARGET lldb POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -DINPUT=${LLDB_PACKAGE} -DDESTINATION=${CMAKE_CURRENT_BINARY_DIR} -P "${CMAKE_SOURCE_DIR}/cmake/Extract.cmake"
-    )
-    set(LLDB_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/include" PARENT_SCOPE)
-
-    # Create dependency check tests
-    set(LLDBAllowedDependencies "${AllowedDependencies}|liblldb.*|(lib)?python3.*")
-    add_test(NAME dependencies:lldb:bin
-        COMMAND ${Python} ${CMAKE_SOURCE_DIR}/tools/check_dependencies.py ${CMAKE_CURRENT_BINARY_DIR}/bin ${LLDBAllowedDependencies}
-    )
-    add_test(NAME dependencies:lldb:lib
-        COMMAND ${Python} ${CMAKE_SOURCE_DIR}/tools/check_dependencies.py ${CMAKE_CURRENT_BINARY_DIR}/lib ${LLDBAllowedDependencies}
-    )
-else()
-    message("${LLDB_PACKAGE} is a directory, symlinking.")
-    file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/bin) # Remove dirs, if any
-    file(REMOVE_RECURSE ${CMAKE_CURRENT_BINARY_DIR}/lib)
-    file(CREATE_LINK ${LLDB_PACKAGE}/bin ${CMAKE_CURRENT_BINARY_DIR}/bin SYMBOLIC)
-    file(CREATE_LINK ${LLDB_PACKAGE}/lib ${CMAKE_CURRENT_BINARY_DIR}/lib SYMBOLIC)
-    if (DEFINED LLVM_SOURCE_DIR)
-        set(lldbSourceInclude "${LLVM_SOURCE_DIR}/lldb/include")
-    else()
-        file(STRINGS "${LLDB_PACKAGE}/CMakeCache.txt" line REGEX "^LLVM_EXTERNAL_LLDB_SOURCE_DIR[:=].*")
-        string(REGEX REPLACE "[^=]*=(.*)" "\\1/include" lldbSourceInclude "${line}")
-    endif()
-    set(LLDB_INCLUDE "${lldbSourceInclude};${LLDB_PACKAGE}/tools/lldb/include" PARENT_SCOPE)
-
-    # Don't check dependencies in symlinked LLDB, as it contains many files that won't be included in the package.
+if (NOT IS_DIRECTORY "${LLVM_ROOT}")
+    message(FATAL_ERROR "Set LLVM_ROOT to the installed LLVM toolchain. LLVM is never downloaded by this build.")
 endif()
+if (NOT LLDB_LIBRARY)
+    if (WIN32)
+        set(LLDB_LIBRARY "${LLVM_ROOT}/bin/liblldb.dll")
+    else()
+        set(LLDB_LIBRARY "${LLVM_ROOT}/lib/liblldb${DylibSuffix}")
+    endif()
+endif()
+if (NOT EXISTS "${LLDB_LIBRARY}")
+    message(FATAL_ERROR "liblldb was not found at ${LLDB_LIBRARY}. Set LLDB_LIBRARY to the installed library.")
+endif()
+
+if (LLVM_SOURCE_DIR)
+    find_program(PYTHON NAMES python python3 REQUIRED)
+    set(GeneratedInclude "${CMAKE_BINARY_DIR}/include")
+    file(MAKE_DIRECTORY "${GeneratedInclude}/lldb/API")
+    execute_process(
+        COMMAND ${PYTHON} "${LLVM_SOURCE_DIR}/lldb/scripts/generate-sbapi-dwarf-enum.py"
+            "${LLVM_SOURCE_DIR}/llvm/include/llvm/BinaryFormat/Dwarf.def"
+            -o "${GeneratedInclude}/lldb/API/SBLanguages.h"
+        COMMAND_ERROR_IS_FATAL ANY)
+    list(APPEND LLDB_INCLUDE_DIRS "${LLVM_SOURCE_DIR}/lldb/include" "${GeneratedInclude}")
+endif()
+if (NOT LLDB_INCLUDE_DIRS)
+    set(LLDB_INCLUDE_DIRS "${LLVM_ROOT}/include")
+endif()
+find_path(LLDB_API_INCLUDE lldb/API/LLDB.h PATHS ${LLDB_INCLUDE_DIRS} NO_DEFAULT_PATH REQUIRED)
+find_path(LLDB_GENERATED_INCLUDE lldb/API/SBLanguages.h PATHS ${LLDB_INCLUDE_DIRS} NO_DEFAULT_PATH REQUIRED)
+
+set(LLDB_INCLUDE "${LLDB_INCLUDE_DIRS}" PARENT_SCOPE)
+set(LLDB_LIBRARY "${LLDB_LIBRARY}" PARENT_SCOPE)
+add_custom_target(lldb)

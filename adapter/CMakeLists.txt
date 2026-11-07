@@ -19,13 +19,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
             message(FATAL_ERROR "Found MSDIA at ${MSDIA}, but it isn't an x64 binary.")
         endif()
     endif()
+    set(MSDIA "${MSDIA}" PARENT_SCOPE)
 endif()
 
 if (CARGO_VERBOSE)
     set(CargoFlags ${CargoFlags} -vv)
 endif()
 
-add_custom_target(adapter
+add_custom_target(adapter ALL
     DEPENDS codelldb_exe launcher_exe codelldb_scripts lang_support ${DIAFiles}
 )
 
@@ -79,9 +80,4 @@ add_custom_target(launcher_exe
 add_test(NAME cargo_test
     COMMAND cargo test --lib -p=lldb -p=adapter-protocol -p=codelldb ${CargoFlags} -vv -- --test-threads=1
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
-
-# Create dependency check tests
-add_test(NAME dependencies:adapter
-    COMMAND ${Python} ${CMAKE_SOURCE_DIR}/tools/check_dependencies.py ${CMAKE_CURRENT_BINARY_DIR} ${AllowedDependencies}
 )
