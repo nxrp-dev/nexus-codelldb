@@ -34,8 +34,9 @@ support scripts, license, and (on Windows) the DIA library. Use `PLATFORM_ID` to
 set the package platform name. There is no full or bootstrap VSIX build in this
 fork; the Nexus extension owns VS Code integration.
 
-The CI workflow provisions LLVM 23.1.4 as a build prerequisite. That toolchain is
-not uploaded with the adapter artifacts.
+The CI workflow provisions LLVM 23 as a build prerequisite: the Windows 23.1.4
+release and LLVM's official Ubuntu APT packages. That toolchain is not uploaded
+with the adapter artifacts.
 
 ## Adapter features
 - Conditional breakpoints, function breakpoints, logpoints,

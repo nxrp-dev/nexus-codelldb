@@ -62,12 +62,13 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          curl -fL "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/LLVM-${LLVM_VERSION}-Linux-X64.tar.xz" -o "$RUNNER_TEMP/llvm.tar.xz"
-          echo "25d814fda50d5fb0084b42be09605d8b1595d49d5e2e03a3345d7e112ff6f9f3  $RUNNER_TEMP/llvm.tar.xz" | sha256sum -c
-          mkdir -p "$RUNNER_TEMP/llvm"
-          tar -xf "$RUNNER_TEMP/llvm.tar.xz" --strip-components=1 -C "$RUNNER_TEMP/llvm"
-          echo "LLVM_ROOT=$RUNNER_TEMP/llvm" >> "$GITHUB_ENV"
-          echo "$RUNNER_TEMP/llvm/bin" >> "$GITHUB_PATH"
+          curl -fL https://apt.llvm.org/llvm-snapshot.gpg.key -o "$RUNNER_TEMP/llvm.asc"
+          sudo install -m 644 "$RUNNER_TEMP/llvm.asc" /etc/apt/keyrings/llvm.asc
+          echo 'deb [signed-by=/etc/apt/keyrings/llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-23 main' | sudo tee /etc/apt/sources.list.d/llvm23.list
+          sudo apt-get update
+          sudo apt-get install -y clang-23 lld-23 llvm-23 lldb-23 liblldb-23-dev libc++-23-dev libc++abi-23-dev
+          echo 'LLVM_ROOT=/usr/lib/llvm-23' >> "$GITHUB_ENV"
+          echo '/usr/lib/llvm-23/bin' >> "$GITHUB_PATH"
       - name: Configure (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
