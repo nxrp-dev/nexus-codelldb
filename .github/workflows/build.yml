@@ -41,9 +41,15 @@ jobs:
       - name: LLVM build prerequisite (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $installer = Join-Path $env:RUNNER_TEMP 'llvm.msi'
-          Invoke-WebRequest "https://github.com/llvm/llvm-project/releases/download/llvmorg-$env:LLVM_VERSION/LLVM-$env:LLVM_VERSION-win64.msi" -OutFile $installer
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $release = Invoke-RestMethod "https://api.github.com/repos/llvm/llvm-project/releases/tags/llvmorg-$env:LLVM_VERSION" -Headers $headers
+          $asset = $release.assets | Where-Object name -eq "LLVM-$env:LLVM_VERSION-win64.msi"
+          $headers.Accept = 'application/octet-stream'
+          Invoke-WebRequest $asset.url -Headers $headers -OutFile $installer
           if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '15e49aca3540991a6f28a0e57babab67da82155c4f73f79dd5e8666a851f9127') { throw 'LLVM checksum mismatch' }
           $install = Start-Process msiexec -ArgumentList "/i `"$installer`" /qn /norestart /L*v `"$env:RUNNER_TEMP\llvm-install.log`"" -Wait -PassThru -WindowStyle Hidden
           if ($install.ExitCode -notin @(0, 3010)) { throw "LLVM installation failed: $($install.ExitCode)" }
