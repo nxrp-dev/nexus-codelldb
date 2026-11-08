@@ -148,11 +148,26 @@ impl super::DebugSession {
         // Instead, child inherits the console of the parent process, so we need to attach/detach around the launch.
         #[cfg(windows)]
         if let Some(terminal) = &self.debuggee_terminal {
-            log_errors!(terminal.attach_console());
+            terminal.attach_console()?;
         }
 
         let launch_result: Result<SBProcess, Error> = (|| match &args.process_create_commands {
-            None => self.target.launch(&launch_info).map_err(|sberr| Box::new(sberr).into()),
+            None => {
+                #[cfg(windows)]
+                if self.debuggee_terminal.is_some() {
+                    let process = crate::terminal_launch::launch(&self.target, &launch_info, &args)?;
+                    if launch_info.launch_flags().contains(LaunchFlag::StopAtEntry) {
+                        self.notify_process_stopped();
+                    } else {
+                        if let Err(error) = process.resume() {
+                            log_errors!(process.kill());
+                            return Err(Box::new(error).into());
+                        }
+                    }
+                    return Ok(process);
+                }
+                self.target.launch(&launch_info).map_err(|sberr| Box::new(sberr).into())
+            }
             Some(commands) => {
                 self.exec_commands("processCreateCommands", commands)?;
                 if self.debugger.selected_target() != self.target {

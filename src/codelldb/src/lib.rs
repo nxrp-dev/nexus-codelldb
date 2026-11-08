@@ -33,6 +33,8 @@ mod python;
 mod shared;
 mod stdio_stream;
 mod terminal;
+#[cfg(windows)]
+mod terminal_launch;
 
 #[derive(Parser, Debug)]
 pub struct Cli {
