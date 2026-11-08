@@ -1,0 +1,38 @@
+module "../nexus/projects/nxbuild/Nexus.Environment.nxscript";
+
+Environment CodeLLDBBuild {
+    Root: @Development.OutputRoot + "/codelldb/" + @Tools.Native.Name + "/" + $BuildConfiguration;
+    Stage: @CodeLLDBBuild.Root + "/stage";
+
+    Environment Platform TargetOS[win64] {
+        SearchPaths: @Tools.MSVC.SearchPaths;
+        Environment: @Tools.MSVC.Environment;
+    }
+    Environment Platform TargetOS[linux] {
+        SearchPaths: [];
+        Environment: [];
+    }
+    Environment Command (Platform) {
+        CompilerPath: @Tools.CMake.CompilerPath;
+        OutputPath: @CodeLLDBBuild.Root;
+        SearchPaths: [@Tools.LLVM.Directory, @Development.RustDirectory];
+        Environment: ["CARGO_HOME=" + @Development.CargoHome,
+            "RUSTUP_HOME=" + @Development.RustupHome];
+    }
+    Environment Compiler HostOS[win64] {
+        Definitions: [
+            "CMAKE_C_COMPILER=" + @Tools.LLVM.Directory + "/clang-cl.exe",
+            "CMAKE_CXX_COMPILER=" + @Tools.LLVM.Directory + "/clang-cl.exe"
+        ];
+    }
+    Environment Compiler HostOS[linux] {
+        Definitions: [
+            "CMAKE_C_COMPILER=" + @Tools.LLVM.CCompiler,
+            "CMAKE_CXX_COMPILER=" + @Tools.LLVM.CPPCompiler
+        ];
+    }
+    Environment Native TargetOS[win64] {
+        Definitions: ["MSDIA=" + @Tools.MSVC.Path + "/../../../../DIA SDK/bin/amd64/msdia140.dll"];
+    }
+    Environment Native TargetOS[linux] { Definitions: []; }
+}

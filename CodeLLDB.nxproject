@@ -1,0 +1,26 @@
+dialect "../nexus/projects/nxbuild/language/nxbuild.Language.nxscript";
+module "CodeLLDB.Build.nxscript";
+
+Project CodeLLDB TargetCPU[x86_64] TargetOS[win64, linux] {
+    Id: "NXRP.CodeLLDB";
+    Description: "Nexus native debug adapter using the configured LLVM installation.";
+    SupportedTarget WindowsX64 { TargetOS: win64; TargetCPU: x86_64; }
+    SupportedTarget LinuxX64 { TargetOS: linux; TargetCPU: x86_64; }
+
+    CMake Configure (CodeLLDBBuild.Command, CodeLLDBBuild.Compiler, CodeLLDBBuild.Native) {
+        Operation: Configure;
+        SourceDirectory: ".";
+        Generator: Ninja;
+        Definitions: [
+            "CMAKE_BUILD_TYPE=" + $BuildConfiguration,
+            "CMAKE_MAKE_PROGRAM=" + @Tools.Ninja.CompilerPath,
+            "CMAKE_INSTALL_PREFIX=" + @CodeLLDBBuild.Stage,
+            "LLVM_ROOT=" + @Tools.LLVM.Directory + "/..",
+            "LLVM_SOURCE_DIR=" + @Development.LLDBSourceDirectory
+        ];
+    }
+    CMake Build (CodeLLDBBuild.Command) {
+        Operation: Build;
+        Targets: ["install"];
+    }
+}

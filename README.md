@@ -9,7 +9,22 @@ the adapter's `--liblldb` argument.
 
 Use Rust 1.91.0, CMake 3.21 or newer, Ninja, and the selected LLVM toolchain.
 Windows additionally needs the MSVC libraries, Windows SDK, and DIA SDK.
-Run from a configured development environment with Cargo and LLVM tools on PATH.
+Keep this checkout beside the `nexus` checkout. The full Nexus Forge build calls
+`CodeLLDB.nxproject` through its extension recipe, then packages the locally built
+adapter. To build the adapter independently, run:
+
+```text
+nxbuild /project=CodeLLDB.nxproject /targetos=win64 /targetcpu=x86_64 /buildconfiguration=Release
+```
+
+Use `/targetos=linux` on Linux. LLVM, CMake, Ninja, MSVC and Windows SDK settings
+come from `NXBuild.Environment.nxscript`. The source-tree
+`nexus/projects/nxbuild/Nexus.Environment.nxscript` supplies the Rust directories
+and optional matching LLDB source headers. Linux needs `liblldb-23-dev`,
+`libc++-23-dev` and `libc++abi-23-dev` in addition to the installed LLVM tools.
+
+The underlying CMake build can also be invoked from a configured development
+environment with Cargo and LLVM tools on PATH:
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
@@ -34,9 +49,8 @@ support scripts, license, and (on Windows) the DIA library. Use `PLATFORM_ID` to
 set the package platform name. There is no full or bootstrap VSIX build in this
 fork; the Nexus extension owns VS Code integration.
 
-The CI workflow provisions LLVM 23 as a build prerequisite: the Windows 23.1.4
-release and LLVM's official Ubuntu APT packages. That toolchain is not uploaded
-with the adapter artifacts.
+The Nexus build stages the CMake install output directly into the extension;
+it does not download a prebuilt adapter or provision LLVM during construction.
 
 ## Adapter features
 - Conditional breakpoints, function breakpoints, logpoints,
